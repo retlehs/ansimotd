@@ -6,6 +6,10 @@ Supports files with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce
 
 ![Example MOTD](./example.png)
 
+## Requirements
+
+* coreutils
+
 ## Installation
 
 1. Clone this repository:
