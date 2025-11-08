@@ -2,6 +2,17 @@
 
 # Get terminal dimensions
 get_terminal_dimensions() {
+  # Try stty with /dev/tty first
+  if command -v stty >/dev/null 2>&1; then
+    dimensions=$(stty size </dev/tty 2>/dev/null)
+    if [ -n "$dimensions" ]; then
+      TERM_LINES=$(echo "$dimensions" | cut -d' ' -f1)
+      TERM_COLS=$(echo "$dimensions" | cut -d' ' -f2)
+      return
+    fi
+  fi
+
+  # Fallback to tput
   if command -v tput >/dev/null 2>&1; then
     TERM_COLS=$(tput cols 2>/dev/null || echo "${COLUMNS:-80}")
     TERM_LINES=$(tput lines 2>/dev/null || echo "${LINES:-24}")
@@ -98,8 +109,8 @@ ansi_art_random_file() {
     return
   fi
 
-  # Try up to 10 random files to find one that fits
-  max_attempts=10
+  # Try up to 50 random files to find one that fits
+  max_attempts=50
   attempt=0
 
   while [ "$attempt" -lt "$max_attempts" ]; do
