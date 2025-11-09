@@ -2,7 +2,7 @@
 
 A shell-agnostic script that displays random ANSI art as a MOTD when you start a shell.
 
-Supports files with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), which contain the width and height of the art. This script uses the metadata to ensure the art fits your terminal.
+Supports files with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), which contain the width and height of the art. This script uses the metadata to ensure the art fits your terminal, and includes ANSI-aware line wrapping to properly display art files that rely on automatic wrapping at the SAUCE-specified width.
 
 ![Example MOTD](./example.png)
 

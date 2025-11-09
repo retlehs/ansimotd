@@ -130,19 +130,49 @@ ansi_art_random_file() {
   return
 }
 
-# Display random ANSI art
-ansi_art_random() {
-  ansi_filename=$(ansi_art_random_file)
+# Display ANSI art (random or from specified file)
+ansi_art_display() {
+  # Use provided file or find a random one
+  if [ -n "$1" ]; then
+    ansi_filename="$1"
+    if [ ! -f "$ansi_filename" ]; then
+      cat >&2 <<EOF
+ansimotd.sh: Error: File not found: $ansi_filename
+EOF
+      return 1
+    fi
+  else
+    ansi_filename=$(ansi_art_random_file)
+  fi
 
   if [ -n "$ansi_filename" ]; then
     # Get file size and calculate art size (total - 128 byte SAUCE record)
     file_size=$(wc -c < "$ansi_filename" | tr -d ' ')
-    art_size=$((file_size - 128))
+
+    # Check if file has SAUCE record and get dimensions
+    sauce_id=$(tail -c 128 "$ansi_filename" 2>/dev/null | head -c 7)
+    if [ "$sauce_id" = "SAUCE00" ]; then
+      art_size=$((file_size - 128))
+      # Parse SAUCE width for line wrapping
+      dimensions=$(parse_sauce_dimensions "$ansi_filename")
+      sauce_width=$(echo "$dimensions" | cut -d' ' -f1)
+    else
+      art_size=$file_size
+      sauce_width=0
+    fi
 
     # Display only the art portion (exclude SAUCE metadata)
     # Convert from Code Page 437 character encoding
     # see https://en.wikipedia.org/wiki/Code_page_437
-    head -c "$art_size" "$ansi_filename" | iconv -f 437 2>/dev/null
+    # Remove CR characters and wrap at SAUCE width if available
+    if [ "$sauce_width" -gt 0 ]; then
+      # Get the directory where this script is located
+      script_dir="$(cd "$(dirname "$0")" && pwd)"
+      head -c "$art_size" "$ansi_filename" | iconv -f 437 2>/dev/null | tr -d '\r' | \
+        python3 "$script_dir/ansi-wrap.py" "$sauce_width"
+    else
+      head -c "$art_size" "$ansi_filename" | iconv -f 437 2>/dev/null | tr -d '\r'
+    fi
 
     # Ensure output ends with a newline
     echo ""
@@ -165,11 +195,25 @@ EOF
 ANSI_MOTD_ART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ansimotd"
 export ANSI_MOTD_ART_DIR
 
+# Parse command-line arguments
+MANUAL_FILE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -f|--file)
+      MANUAL_FILE="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
 # Create art directory if it doesn't exist
 [ -d "$ANSI_MOTD_ART_DIR" ] || mkdir -p "$ANSI_MOTD_ART_DIR"
 
 # Get terminal dimensions
 get_terminal_dimensions
 
-# Display random ANSI art
-ansi_art_random
+# Display ANSI art
+ansi_art_display "$MANUAL_FILE"
