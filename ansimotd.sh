@@ -91,6 +91,11 @@ ansi_art_random_file() {
                    --exclude '*.txt' \
                    --exclude '*.zip' \
                    --exclude '*.exe' \
+                   --exclude '*.jpg' \
+                   --exclude '*.jpeg' \
+                   --exclude '*.png' \
+                   --exclude '*.gif' \
+                   --exclude '*.bmp' \
                    --search-path "$ANSI_MOTD_ART_DIR" 2>/dev/null)
   else
     file_list=$(find "$ANSI_MOTD_ART_DIR" -type f \
@@ -99,6 +104,11 @@ ansi_art_random_file() {
                      ! -iname '*.txt' \
                      ! -iname '*.zip' \
                      ! -iname '*.exe' \
+                     ! -iname '*.jpg' \
+                     ! -iname '*.jpeg' \
+                     ! -iname '*.png' \
+                     ! -iname '*.gif' \
+                     ! -iname '*.bmp' \
                      2>/dev/null)
   fi
 
