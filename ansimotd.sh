@@ -83,34 +83,36 @@ ansi_fits_terminal() {
 ansi_art_random_file() {
   # Find all files, excluding common non-ANSI extensions
   # We'll filter by SAUCE metadata later
-  if command -v fd >/dev/null 2>&1; then
-    file_list=$(fd --type f \
-                   --absolute-path \
-                   --exclude '*.diz' \
-                   --exclude '*.nfo' \
-                   --exclude '*.txt' \
-                   --exclude '*.zip' \
-                   --exclude '*.exe' \
-                   --exclude '*.jpg' \
-                   --exclude '*.jpeg' \
-                   --exclude '*.png' \
-                   --exclude '*.gif' \
-                   --exclude '*.bmp' \
-                   --search-path "$ANSI_MOTD_ART_DIR" 2>/dev/null)
-  else
-    file_list=$(find "$ANSI_MOTD_ART_DIR" -type f \
-                     ! -iname '*.diz' \
-                     ! -iname '*.nfo' \
-                     ! -iname '*.txt' \
-                     ! -iname '*.zip' \
-                     ! -iname '*.exe' \
-                     ! -iname '*.jpg' \
-                     ! -iname '*.jpeg' \
-                     ! -iname '*.png' \
-                     ! -iname '*.gif' \
-                     ! -iname '*.bmp' \
-                     2>/dev/null)
-  fi
+  file_list=$(find "$ANSI_MOTD_ART_DIR" -type f \
+                   ! -iname '*.diz' \
+                   ! -iname '*.nfo' \
+                   ! -iname '*.txt' \
+                   ! -iname '*.zip' \
+                   ! -iname '*.exe' \
+                   ! -iname '*.jpg' \
+                   ! -iname '*.jpeg' \
+                   ! -iname '*.png' \
+                   ! -iname '*.gif' \
+                   ! -iname '*.bmp' \
+                   ! -iname '*.pcx' \
+                   ! -iname '*.lbm' \
+                   ! -iname '*.rip' \
+                   ! -iname '*.htm' \
+                   ! -iname '*.html' \
+                   ! -iname '*.doc' \
+                   ! -iname '*.com' \
+                   ! -iname '*.class' \
+                   ! -iname '*.bat' \
+                   ! -iname '*.iso' \
+                   ! -iname '*.mod' \
+                   ! -iname '*.s3m' \
+                   ! -iname '*.xm' \
+                   ! -iname '*.it' \
+                   ! -iname '*.mp3' \
+                   ! -iname '*.wav' \
+                   ! -iname '*.voc' \
+                   ! -iname '.DS_Store' \
+                   2>/dev/null)
 
   # Count total files
   total_files=$(echo "$file_list" | wc -l | tr -d ' ')
