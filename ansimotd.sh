@@ -186,6 +186,119 @@ import re
 width = int(sys.argv[1])
 data = sys.stdin.read()
 
+# VGA palette - the exact RGB values used by DOS/VGA hardware
+# These are the colors ANSI artists designed for
+VGA_FG = {
+    30: (0,0,0),       # black
+    31: (170,0,0),     # red
+    32: (0,170,0),     # green
+    33: (170,85,0),    # brown/yellow
+    34: (0,0,170),     # blue
+    35: (170,0,170),   # magenta
+    36: (0,170,170),   # cyan
+    37: (170,170,170), # light gray
+    90: (85,85,85),    # dark gray
+    91: (255,85,85),   # light red
+    92: (85,255,85),   # light green
+    93: (255,255,85),  # yellow
+    94: (85,85,255),   # light blue
+    95: (255,85,255),  # light magenta
+    96: (85,255,255),  # light cyan
+    97: (255,255,255), # white
+}
+VGA_BG = {
+    40: (0,0,0),
+    41: (170,0,0),
+    42: (0,170,0),
+    43: (170,85,0),
+    44: (0,0,170),
+    45: (170,0,170),
+    46: (0,170,170),
+    47: (170,170,170),
+    100: (85,85,85),
+    101: (255,85,85),
+    102: (85,255,85),
+    103: (255,255,85),
+    104: (85,85,255),
+    105: (255,85,255),
+    106: (85,255,255),
+    107: (255,255,255),
+}
+
+# Bold flag turns dark colors (30-37) into bright colors
+bold_active = False
+current_fg = None
+current_bg = None
+
+def remap_sgr(seq):
+    \"\"\"Remap an SGR (color/style) escape sequence to use 24-bit true color.\"\"\"
+    global bold_active, current_fg, current_bg
+    # Extract the parameter part between ESC[ and m
+    inner = seq[2:-1]  # strip ESC[ and m
+    if not inner:
+        params = [0]
+    else:
+        params = [int(p) if p else 0 for p in inner.split(';')]
+
+    out_parts = []
+    i = 0
+    while i < len(params):
+        p = params[i]
+        if p == 0:  # reset
+            bold_active = False
+            current_fg = None
+            current_bg = None
+            out_parts.append('0')
+        elif p == 1:  # bold
+            bold_active = True
+            # If we already have a dark FG set, upgrade it to bright
+            if current_fg is not None and 30 <= current_fg <= 37:
+                bright = current_fg + 60  # 30->90, etc.
+                if bright in VGA_FG:
+                    r, g, b = VGA_FG[bright]
+                    out_parts.append(f'38;2;{r};{g};{b}')
+                    current_fg = bright
+        elif p == 22:  # normal intensity
+            bold_active = False
+            # Downgrade bright FG back to dark if needed
+            if current_fg is not None and 90 <= current_fg <= 97:
+                dark = current_fg - 60
+                if dark in VGA_FG:
+                    r, g, b = VGA_FG[dark]
+                    out_parts.append(f'38;2;{r};{g};{b}')
+                    current_fg = dark
+        elif p in VGA_FG:
+            # Foreground color
+            actual = p
+            # If bold is active and this is a dark color, use bright variant
+            if bold_active and 30 <= p <= 37:
+                actual = p + 60
+            if actual in VGA_FG:
+                r, g, b = VGA_FG[actual]
+                out_parts.append(f'38;2;{r};{g};{b}')
+                current_fg = actual
+            else:
+                out_parts.append(str(p))
+        elif p in VGA_BG:
+            r, g, b = VGA_BG[p]
+            out_parts.append(f'48;2;{r};{g};{b}')
+            current_bg = p
+        elif p == 38 and i + 1 < len(params) and params[i+1] == 5:
+            # 256-color FG - pass through
+            end = min(i + 3, len(params))
+            out_parts.append(';'.join(str(x) for x in params[i:end]))
+            i = end - 1
+        elif p == 48 and i + 1 < len(params) and params[i+1] == 5:
+            # 256-color BG - pass through
+            end = min(i + 3, len(params))
+            out_parts.append(';'.join(str(x) for x in params[i:end]))
+            i = end - 1
+        else:
+            out_parts.append(str(p))
+        i += 1
+
+    return f'\x1b[{\";\".join(out_parts)}m'
+
 # Split on existing newlines first
 lines = data.split('\n')
 
@@ -197,16 +310,17 @@ for line in lines:
         if line[i] == '\033' or line[i] == '\x1b':
             # Find the end of the escape sequence
             j = i + 1
-            seq_start = j
             while j < len(line) and not line[j].isalpha():
                 j += 1
 
             # Extract the escape sequence
             seq = line[i:j+1]
 
+            # Remap SGR (color) sequences to true-color VGA palette
+            if j < len(line) and line[j] == 'm':
+                seq = remap_sgr(seq)
             # Check if this is a cursor movement sequence
-            if j < len(line):
-                # Cursor position with row;col
+            elif j < len(line):
                 match = re.match(r'\x1b\[(\d+)?;?(\d+)?([HfABCDEFG])', seq)
                 if match:
                     num1 = int(match.group(1)) if match.group(1) else 1
@@ -223,7 +337,7 @@ for line in lines:
                         if match.group(2):  # Has column specified
                             col = num2 - 1
 
-            # Print the whole escape sequence
+            # Print the (possibly remapped) escape sequence
             sys.stdout.write(seq)
             i = j + 1
         else:
@@ -250,7 +364,85 @@ for line in lines:
     sys.stdout.write('\n')
 " "$sauce_width"
     else
-      head -c "$art_size" "$ansi_filename" | iconv -f 437 2>/dev/null | tr -d '\r'
+      head -c "$art_size" "$ansi_filename" | iconv -f 437 2>/dev/null | tr -d '\r' | \
+        python3 -c "
+import sys
+import re
+
+data = sys.stdin.read()
+
+# VGA palette for non-SAUCE path
+VGA_FG = {
+    30: (0,0,0), 31: (170,0,0), 32: (0,170,0), 33: (170,85,0),
+    34: (0,0,170), 35: (170,0,170), 36: (0,170,170), 37: (170,170,170),
+    90: (85,85,85), 91: (255,85,85), 92: (85,255,85), 93: (255,255,85),
+    94: (85,85,255), 95: (255,85,255), 96: (85,255,255), 97: (255,255,255),
+}
+VGA_BG = {
+    40: (0,0,0), 41: (170,0,0), 42: (0,170,0), 43: (170,85,0),
+    44: (0,0,170), 45: (170,0,170), 46: (0,170,170), 47: (170,170,170),
+    100: (85,85,85), 101: (255,85,85), 102: (85,255,85), 103: (255,255,85),
+    104: (85,85,255), 105: (255,85,255), 106: (85,255,255), 107: (255,255,255),
+}
+bold_active = False
+current_fg = None
+
+def remap_sgr(seq):
+    global bold_active, current_fg
+    inner = seq[2:-1]
+    if not inner:
+        params = [0]
+    else:
+        params = [int(p) if p else 0 for p in inner.split(';')]
+    out_parts = []
+    i = 0
+    while i < len(params):
+        p = params[i]
+        if p == 0:
+            bold_active = False; current_fg = None; out_parts.append('0')
+        elif p == 1:
+            bold_active = True
+            if current_fg is not None and 30 <= current_fg <= 37:
+                bright = current_fg + 60
+                if bright in VGA_FG:
+                    r, g, b = VGA_FG[bright]; out_parts.append(f'38;2;{r};{g};{b}'); current_fg = bright
+        elif p == 22:
+            bold_active = False
+        elif p in VGA_FG:
+            actual = p
+            if bold_active and 30 <= p <= 37: actual = p + 60
+            if actual in VGA_FG:
+                r, g, b = VGA_FG[actual]; out_parts.append(f'38;2;{r};{g};{b}'); current_fg = actual
+            else: out_parts.append(str(p))
+        elif p in VGA_BG:
+            r, g, b = VGA_BG[p]; out_parts.append(f'48;2;{r};{g};{b}')
+        else: out_parts.append(str(p))
+        i += 1
+    return f'\x1b[{\";\".join(out_parts)}m'
+
+def remap_line(line):
+    result = []
+    i = 0
+    while i < len(line):
+        if line[i] == '\x1b' and i + 1 < len(line) and line[i+1] == '[':
+            j = i + 2
+            while j < len(line) and not line[j].isalpha():
+                j += 1
+            if j < len(line):
+                seq = line[i:j+1]
+                if line[j] == 'm':
+                    seq = remap_sgr(seq)
+                result.append(seq)
+                i = j + 1
+            else:
+                result.append(line[i]); i += 1
+        else:
+            result.append(line[i]); i += 1
+    return ''.join(result)
+
+for line in data.split('\n'):
+    sys.stdout.write(remap_line(line) + '\n')
+"
     fi
 
     # Ensure output ends with a newline
