@@ -6,9 +6,14 @@ Supports files with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce
 
 ![Example MOTD](./example.png)
 
+## Color accuracy
+
+ANSI art was designed for the DOS/VGA 16-color palette. Modern terminals remap these colors to their own theme, which can significantly distort the artwork. This script converts standard ANSI color codes to 24-bit true-color escape sequences using the exact VGA RGB values, so art displays with accurate colors regardless of your terminal's color scheme.
+
 ## Requirements
 
 * coreutils
+* python3
 
 ## Installation
 
