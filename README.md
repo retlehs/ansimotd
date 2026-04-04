@@ -1,78 +1,81 @@
 # ansimotd
 
-A shell-agnostic script that displays random ANSI art as a MOTD when you start a shell.
+Display random ANSI art as your message of the day.
 
-Supports files with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), which contain the width and height of the art. This script uses the metadata to ensure the art fits your terminal, and includes ANSI-aware line wrapping to properly display art files that rely on automatic wrapping at the SAUCE-specified width.
+Selects a random ANSI art file with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), ensures it fits your terminal width, and renders it with accurate VGA colors using 24-bit true-color escape sequences.
+
+Art is sourced from [16colo.rs](https://16colo.rs/).
 
 ![Example MOTD](./example.png)
 
 ## Color accuracy
 
-ANSI art was designed for the DOS/VGA 16-color palette. Modern terminals remap these colors to their own theme, which can significantly distort the artwork. This script converts standard ANSI color codes to 24-bit true-color escape sequences using the exact VGA RGB values, so art displays with accurate colors regardless of your terminal's color scheme.
-
-## Requirements
-
-* coreutils
-* python3
+ANSI art was designed for the DOS/VGA 16-color palette. Modern terminals remap these colors to their own theme, which can significantly distort the artwork. ansimotd converts standard ANSI color codes to 24-bit true-color escape sequences using the exact VGA RGB values, so art displays accurately regardless of your terminal's color scheme.
 
 ## Installation
 
-1. Clone this repository:
-
 ```bash
-git clone https://github.com/retlehs/ansimotd.git
-cd ansimotd
+go install github.com/retlehs/ansimotd@latest
 ```
 
-2. Source the script in your shell's RC file:
+## Usage
+
+### Display art
 
 ```bash
-source /path/to/ansimotd/ansimotd.sh
+# Display a random ANSI art file
+ansimotd
+
+# Display a specific file
+ansimotd display --file /path/to/art.ans
 ```
 
-3. Download some ANSI art (see below)
-
-### Getting ANSI art to display
-
-After installation, you'll need to download ANSI art files. This script supports ANSI files from [16colo.rs](https://16colo.rs/).
-
-#### Using the download script
+### Download art
 
 ```bash
 # Download all packs from a specific year
-./download-art.sh 1996
+ansimotd download 1996
 
-# Download a specific pack from a year
-./download-art.sh 1999/bmbook20
+# Filter by group
+ansimotd download 1996 --group ice
 
-# Download all packs from a group for a specific year
-./download-art.sh 1999/rmrs
+# Download a specific pack
+ansimotd download 1999 --pack bmbook20
+```
 
-# Download all packs from a group across all years
-./download-art.sh ice
-./download-art.sh acid
+The `download` command fetches packs from the [16colo.rs API](https://16colo.rs/), extracts ANSI files, and stores them locally. Packs that have already been downloaded are skipped on re-run.
 
-# Download all art (this is large!)
-./download-art.sh all
+### Shell integration
 
-# Show usage information
-./download-art.sh
+Add to your shell RC file (`.bashrc`, `.zshrc`, etc.):
+
+```bash
+ansimotd
+```
+
+### Other commands
+
+```bash
+# Print the path of the last displayed file
+ansimotd last
+
+# Print version
+ansimotd --version
 ```
 
 ## Configuration
 
-The script exports the following environment variables:
+| Environment variable | Description | Default |
+|---|---|---|
+| `ANSIMOTD_DIR` | Root directory for all ansimotd data | `$XDG_CONFIG_HOME/ansimotd` or `~/.config/ansimotd` |
 
-* `ANSI_MOTD_ART_DIR` - Directory where ANSI art is stored (default: `${XDG_CONFIG_HOME:-$HOME/.config}/ansimotd`)
-* `ANSI_MOTD_FILENAME` - Full path to the last displayed ANSI art file
+All paths derive from the root:
 
-You can override the art directory by setting `ANSI_MOTD_ART_DIR` before sourcing the script:
-
-```bash
-export ANSI_MOTD_ART_DIR="$HOME/my-ansi-art"
-source /path/to/ansimotd/ansimotd.sh
-```
+| Path | Purpose |
+|---|---|
+| `$ROOT/art/` | Downloaded art packs |
+| `$ROOT/last` | Path to the last displayed file |
 
 ## Credits
 
-Based on [zsh-ansimotd](https://github.com/yuhonas/zsh-ansimotd) by yuhonas, with significant modifications for shell-agnostic support and dimension filtering.
+Based on [zsh-ansimotd](https://github.com/yuhonas/zsh-ansimotd) by yuhonas, with significant modifications including accurate VGA color rendering, SAUCE-aware line wrapping, and the 16colo.rs download client.
