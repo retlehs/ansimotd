@@ -13,6 +13,19 @@ type sgrState struct {
 	currentBG  int // 0 = unset
 }
 
+// resetBG returns "\x1b[49m" (default background) if a non-default background
+// is currently active, and clears the tracked bg state. Used before emitting
+// a newline so background colors don't bleed across line boundaries on
+// terminals wider than the art. FG and bold are left alone — they persist
+// naturally across the newline.
+func (s *sgrState) resetBG() string {
+	if s.currentBG == 0 {
+		return ""
+	}
+	s.currentBG = 0
+	return "\x1b[49m"
+}
+
 // remapSGR rewrites an SGR escape sequence to use 24-bit true-color VGA values.
 // seq is the full sequence including ESC[ and m (e.g. "\x1b[1;31m").
 func (s *sgrState) remapSGR(seq string) string {

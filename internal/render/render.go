@@ -96,6 +96,7 @@ func processANSI(data string, wrapWidth int) string {
 					}
 				default:
 					if wrapWidth > 0 && col >= wrapWidth {
+						buf.WriteString(state.resetBG())
 						buf.WriteByte('\n')
 						col = 0
 					}
@@ -108,6 +109,10 @@ func processANSI(data string, wrapWidth int) string {
 			}
 		}
 		if lineIdx < len(lines)-1 {
+			// Reset background (only) before the newline so bg doesn't bleed
+			// past the art's right edge on terminals wider than wrapWidth.
+			// FG and bold persist naturally across the newline.
+			buf.WriteString(state.resetBG())
 			buf.WriteByte('\n')
 		}
 	}
