@@ -1,6 +1,6 @@
 # ansimotd
 
-Display random ANSI art as your message of the day.
+Display random ANSI art as your message of the day. For a browser version, visit [ansimotd.com](https://ansimotd.com).
 
 Selects a random ANSI art file with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), ensures it fits your terminal width, and renders it with accurate VGA colors using 24-bit true-color escape sequences.
 
