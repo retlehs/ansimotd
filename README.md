@@ -15,6 +15,13 @@ ANSI art was designed for the DOS/VGA 16-color palette. Modern terminals remap t
 ## Installation
 
 ```bash
+brew tap retlehs/tap
+brew install retlehs/tap/ansimotd
+```
+
+Or with Go:
+
+```bash
 go install github.com/retlehs/ansimotd@latest
 ```
 

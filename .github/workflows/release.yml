@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: retlehs/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ github.ref_name }}"
+          DARWIN_AMD64="https://github.com/${{ github.repository }}/releases/download/${TAG}/ansimotd_darwin_amd64.tar.gz"
+          DARWIN_ARM64="https://github.com/${{ github.repository }}/releases/download/${TAG}/ansimotd_darwin_arm64.tar.gz"
+          LINUX_AMD64="https://github.com/${{ github.repository }}/releases/download/${TAG}/ansimotd_linux_amd64.tar.gz"
+          LINUX_ARM64="https://github.com/${{ github.repository }}/releases/download/${TAG}/ansimotd_linux_arm64.tar.gz"
+
+          curl -sL "$DARWIN_AMD64" -o /tmp/darwin_amd64.tar.gz
+          curl -sL "$DARWIN_ARM64" -o /tmp/darwin_arm64.tar.gz
+          curl -sL "$LINUX_AMD64" -o /tmp/linux_amd64.tar.gz
+          curl -sL "$LINUX_ARM64" -o /tmp/linux_arm64.tar.gz
+
+          SHA_DARWIN_AMD64=$(sha256sum /tmp/darwin_amd64.tar.gz | awk '{print $1}')
+          SHA_DARWIN_ARM64=$(sha256sum /tmp/darwin_arm64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum /tmp/linux_amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_ARM64=$(sha256sum /tmp/linux_arm64.tar.gz | awk '{print $1}')
+
+          mkdir -p homebrew-tap/Formula
+
+          cat > homebrew-tap/Formula/ansimotd.rb <<FORMULA
+          class Ansimotd < Formula
+            desc "Display random ANSI art in your terminal"
+            homepage "https://github.com/${{ github.repository }}"
+            version "$VERSION"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "$DARWIN_ARM64"
+                sha256 "$SHA_DARWIN_ARM64"
+              else
+                url "$DARWIN_AMD64"
+                sha256 "$SHA_DARWIN_AMD64"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "$LINUX_ARM64"
+                sha256 "$SHA_LINUX_ARM64"
+              else
+                url "$LINUX_AMD64"
+                sha256 "$SHA_LINUX_AMD64"
+              end
+            end
+
+            def install
+              bin.install "ansimotd"
+            end
+
+            test do
+              assert_match "ansimotd", shell_output("#{bin}/ansimotd --help")
+            end
+          end
+          FORMULA
+
+      - name: Commit and push tap update
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/ansimotd.rb
+          if git diff --cached --quiet; then
+            echo "No tap changes to commit"
+            exit 0
+          fi
+          git commit -m "ansimotd $VERSION"
+          git push
