@@ -25,9 +25,26 @@ Or with Go:
 go install github.com/retlehs/ansimotd@latest
 ```
 
-## Usage
+### Download art
 
-### Display art
+ansimotd ships without any art — you need to download at least one pack before it can display anything. A good starting point:
+
+```bash
+ansimotd download 1996
+ansimotd download 1997
+ansimotd download 1998
+ansimotd download 1999
+```
+
+### Shell integration
+
+Add to your shell RC file (`.bashrc`, `.zshrc`, etc.) to display a random piece of art each time you open a terminal:
+
+```bash
+ansimotd
+```
+
+## Usage
 
 ```bash
 # Display a random ANSI art file
@@ -37,27 +54,14 @@ ansimotd
 ansimotd display --file /path/to/art.ans
 ```
 
-### Download art
+### Targeted downloads
 
 ```bash
-# Download all packs from a specific year
-ansimotd download 1996
-
 # Filter by group
 ansimotd download 1996 --group ice
 
 # Download a specific pack
 ansimotd download 1999 --pack bmbook20
-```
-
-The `download` command fetches packs from the [16colo.rs API](https://16colo.rs/), extracts ANSI files, and stores them locally. Packs that have already been downloaded are skipped on re-run.
-
-### Shell integration
-
-Add to your shell RC file (`.bashrc`, `.zshrc`, etc.):
-
-```bash
-ansimotd
 ```
 
 ### Other commands
