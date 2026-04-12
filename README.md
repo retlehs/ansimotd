@@ -1,16 +1,15 @@
 # ansimotd
 
-Display random ANSI art as your message of the day. For a browser version, visit [ansimotd.com](https://ansimotd.com).
+[![Website](https://img.shields.io/badge/ansimotd.com-4a4a4a?style=flat-square)](https://ansimotd.com) [![X](https://img.shields.io/badge/@ansimotd-000000?style=flat-square&logo=x)](https://x.com/ansimotd) [![Bluesky](https://img.shields.io/badge/@ansimotd.com-0085ff?style=flat-square&logo=bluesky&logoColor=white)](https://bsky.app/profile/ansimotd.com)
 
-Selects a random ANSI art file with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm), ensures it fits your terminal width, and renders it with accurate VGA colors using 24-bit true-color escape sequences.
+Display random ANSI art in your terminal as a message of the day. For a browser version, visit [ansimotd.com](https://ansimotd.com).
 
-Art is sourced from [16colo.rs](https://16colo.rs/).
+- Selects a random ANSI art file with valid [SAUCE metadata](https://www.acid.org/info/sauce/sauce.htm)
+- Ensures art fits your terminal width
+- Converts ANSI color codes to 24-bit true-color escape sequences using exact VGA RGB values, so art displays accurately regardless of your terminal's color scheme
+- Art sourced from [16colo.rs](https://16colo.rs/)
 
 ![Example MOTD](./example.png)
-
-## Color accuracy
-
-ANSI art was designed for the DOS/VGA 16-color palette. Modern terminals remap these colors to their own theme, which can significantly distort the artwork. ansimotd converts standard ANSI color codes to 24-bit true-color escape sequences using the exact VGA RGB values, so art displays accurately regardless of your terminal's color scheme.
 
 ## Installation
 
