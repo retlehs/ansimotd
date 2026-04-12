@@ -14,5 +14,17 @@ archives:
   - format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 
+nfpms:
+  - id: ansimotd
+    package_name: ansimotd
+    vendor: retlehs
+    homepage: https://github.com/retlehs/ansimotd
+    maintainer: Ben Word <ben@benword.com>
+    description: Display random ANSI art in your terminal
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
+
 changelog:
   sort: asc
